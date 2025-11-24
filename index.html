@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Luigi's Poker Club — Tournament Director (TV)</title>
+<meta name="description" content="Reloj profesional de torneos — Luigi's Poker Club. Pantalla TV, sonidos en subida de nivel, panel completo de niveles y tema verde-dorado con textura."/>
+<style>
+  :root{
+    --green-900:#032b1f;
+    --green-700:#0a4a30;
+    --gold:#d4af37;
+    --ivory:#f6ead2;
+    --glass: rgba(255,255,255,0.04);
+  }
+  /* Reset */
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:var(--gold);background:var(--green-900);}
+  /* Table texture background */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background:
+      radial-gradient(rgba(0,0,0,0.14), rgba(0,0,0,0.28)),
+      linear-gradient(180deg, rgba(1,44,26,0.55), rgba(1,32,18,0.7));
+    z-index:0;
+    pointer-events:none;
+  }
+  /* subtle felt noise (CSS only) */
+  .felt{
+    background-image:
+      radial-gradient(rgba(255,255,255,0.01) 1px, transparent 1px);
+    background-size: 4px 4px;
+    mix-blend-mode: overlay;
+    opacity: 0.18;
+    position:absolute; inset:0; z-index:0;
+  }
+
+  header{
+    display:flex;align-items:center;gap:18px;padding:18px 22px;border-bottom:2px solid rgba(212,175,55,0.08);position:relative;z-index:2;
+    background:linear-gradient(90deg, rgba(2,45,30,0.06), rgba(0,0,0,0.06));
+  }
+  .logo{
+    width:84px;height:84px;border-radius:12px;overflow:hidden;border:3px solid rgba(212,175,55,0.2);box-shadow:0 6px 20px rgba(0,0,0,0.6);
+    background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(255,255,255,0.02));
+  }
+  .logo img{width:100%;height:100%;object-fit:cover;display:block}
+  .title h1{margin:0;font-size:20px;letter-spacing:1px;color:var(--gold);text-transform:uppercase}
+  .title p{margin:2px 0 0;color:var(--ivory);opacity:0.85;font-size:13px}
+
+  /* layout */
+  .wrap{max-width:1200px;margin:20px auto;padding:18px;position:relative;z-index:2;}
+  .grid{display:grid;grid-template-columns:1fr 420px;gap:20px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr;}.logo{width:64px;height:64px}}
+
+  /* Main card (clock) */
+  .card{background:linear-gradient(180deg, rgba(6,36,26,0.45), rgba(3,26,19,0.6));border:1px solid rgba(212,175,55,0.06);border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,0.6);position:relative;overflow:hidden}
+  .clock-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px}
+  #clock{
+    font-size:92px;
+    font-weight:800;
+    color:var(--ivory);
+    text-shadow:0 2px 18px rgba(0,0,0,0.7), 0 0 25px rgba(212,175,55,0.12);
+    background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.12));
+    padding:22px 38px;border-radius:14px;border:2px solid rgba(212,175,55,0.06);
+    display:inline-block;
+  }
+  .level-meta{margin-top:6px;text-align:center;color:var(--ivory);opacity:0.9}
+  .level-meta b{color:var(--gold);font-size:18px}
+
+  .blind-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .pill{background:rgba(0,0,0,0.15);padding:8px 12px;border-radius:999px;border:1px solid rgba(212,175,55,0.06);font-weight:700;color:var(--ivory)}
+
+  /* Right control panel */
+  .panel h3{margin:0 0 12px 0;color:var(--gold);letter-spacing:0.6px}
+  .field{margin-bottom:10px}
+  label{display:block;font-size:13px;color:var(--ivory);opacity:0.9;margin-bottom:6px}
+  input[type="number"], input[type="text"], select, textarea{
+    width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.18);color:var(--ivory);
+  }
+  .row{display:flex;gap:8px}
+  .btn{background:linear-gradient(180deg,var(--gold), #b88724);color:#052018;border:none;padding:10px 12px;border-radius:8px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+  .btn.ghost{background:transparent;border:1px solid rgba(212,175,55,0.14);color:var(--ivory)}
+  .small{padding:8px 10px;font-size:14px}
+
+  /* levels list */
+  .levels-list{margin-top:12px;max-height:320px;overflow:auto;padding-right:6px}
+  .level-item{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.02)}
+  .level-item input{width:80px}
+  .level-item .pos{width:34px;text-align:center;color:var(--gold);font-weight:800}
+
+  /* TV mode overlay */
+  .tv-overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(1,18,12,0.9), rgba(0,0,0,0.95));display:none;align-items:center;justify-content:center;flex-direction:column;z-index:9999}
+  .tv-clock{font-size:140px;font-weight:900;color:var(--ivory);text-shadow:0 6px 40px rgba(0,0,0,0.8), 0 0 40px rgba(212,175,55,0.12)}
+  .tv-meta{margin-top:14px;color:var(--gold);font-size:26px;font-weight:800}
+  .tv-watermark{position:absolute;opacity:0.06;filter:grayscale(1);width:50vmin;max-width:900px;pointer-events:none}
+
+  /* animations */
+  .flash{
+    position:absolute;inset:0;background:rgba(212,175,55,0.06);opacity:0;animation:flashAnim .9s ease;
+  }
+  @keyframes flashAnim{0%{opacity:0}20%{opacity:0.55}100%{opacity:0}}
+
+  /* footer */
+  footer{margin-top:28px;text-align:center;color:var(--ivory);opacity:0.8;padding-bottom:40px}
+  
+  .reset-btn {
+    background: linear-gradient(#176c2b, #0f4a1e);
+    border: 2px solid #d4af37;
+    color: #d4af37;
+    font-weight: bold;
+    padding: 12px 20px;
+    margin-left: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s ease;
+    text-transform: uppercase;
+}
+
+.reset-btn:hover {
+    background: linear-gradient(#1d7f33, #145e27);
+    transform: scale(1.05);
+}
+
+</style>
+</head>
+<body>
+
+<div class="felt"></div>
+
+<header>
+  <div class="logo" title="Luigi's Poker Club">
+    <img src="https://raw.githubusercontent.com/FerProducer/pokertournamentdirector/refs/heads/main/WhatsApp%20Image%202025-11-23%20at%206.10.12%20PM.jpeg" alt="Luigi's Poker Club">
+  </div>
+  <div class="title">
+    <h1>Luigi's Poker Club</h1>
+    <p>Tournament Director — Reloj profesional • Modo TV</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+    <!-- LEFT: Reloj grande -->
+    <section class="card">
+      <div class="clock-wrap">
+        <div id="clock" aria-live="polite">00:00</div>
+        <div class="level-meta">
+          Nivel <b id="levelNum">1</b> · Blinds <b id="blindsText">100 / 200</b> · Ante <b id="anteText">0</b>
+        </div>
+        <div class="blind-pills" id="blindPills"></div>
+      </div>
+
+      <!-- visual flash on level change -->
+      <div id="flash" class=""></div>
+    </section>
+
+    <!-- RIGHT: Controles y niveles -->
+    <aside class="card panel">
+      <h3>Panel de control</h3>
+
+      <div class="field">
+        <label>Nombre del torneo</label>
+        <input id="tourneyName" type="text" value="Luigi's Poker Club">
+      </div>
+
+      <div class="row">
+        <div style="flex:1" class="field">
+          <label>Jugadores</label>
+          <input id="players" type="number" value="40" min="1">
+        </div>
+        <div style="width:120px" class="field">
+          <label>Buy-in</label>
+          <input id="buyin" type="number" value="100" min="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Duración por nivel (min)</label>
+        <input id="levelDuration" type="number" value="20" min="1">
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn" id="startBtn">Iniciar</button>
+        <button class="btn ghost" id="pauseBtn">Pausar</button>
+        <button class="btn ghost" id="nextBtn">Siguiente nivel</button>
+        <button class="btn" id="tvBtn">Entrar TV</button>
+        <button id="resetLevelBtn" class="control-btn reset-btn">Reiniciar Nivel</button>
+      </div>
+
+      <div style="margin-top:6px">
+        <label>Lista de niveles (editable)</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="newSB" type="number" placeholder="SB" style="width:80px">
+          <input id="newBB" type="number" placeholder="BB" style="width:80px">
+          <input id="newDur" type="number" placeholder="min" style="width:80px">
+          <button class="btn small" id="addLevelBtn">Agregar</button>
+        </div>
+
+        <div class="levels-list" id="levelsList" role="list"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Ante por defecto</label>
+        <input id="defaultAnte" type="number" value="0">
+      </div>
+
+      <div style="margin-top:12px">
+        <button class="btn" id="exportBtn">Exportar estructura (JSON)</button>
+        <button class="btn ghost" id="importBtn">Importar ejemplo</button>
+      </div>
+
+    </aside>
+  </div>
+
+  <footer>
+    © 2025 Luigi's Poker Club — Tournament Director • Cabo San Lucas
+  </footer>
+</main>
+
+<!-- TV Overlay -->
+<div id="tvOverlay" class="tv-overlay" role="dialog" aria-hidden="true" >
+  <img class="tv-watermark" src="/mnt/data/WhatsApp Image 2025-11-23 at 6.10.12 PM.jpeg" alt="watermark">
+  <div class="tv-clock" id="tvClock">00:00</div>
+  <div class="tv-meta" id="tvMeta">Nivel 1 — 100 / 200 — Ante 0</div>
+  <div style="margin-top:20px">
+    <button class="btn" id="exitTvBtn">Salir TV</button>
+  </div>
+</div>
+
+<script>
+/* =========================
+   State & Defaults
+   ========================= */
+const clockEl = document.getElementById('clock');
+const tvClockEl = document.getElementById('tvClock');
+const tvMetaEl = document.getElementById('tvMeta');
+const levelNumEl = document.getElementById('levelNum');
+const blindsTextEl = document.getElementById('blindsText');
+const anteTextEl = document.getElementById('anteText');
+const blindPillsEl = document.getElementById('blindPills');
+const levelsListEl = document.getElementById('levelsList');
+const flashEl = document.getElementById('flash');
+
+let levels = [
+  {sb:100, bb:200, min:20},
+  {sb:150, bb:300, min:20},
+  {sb:250, bb:500, min:20},
+  {sb:400, bb:800, min:15},
+  {sb:600, bb:1200, min:15},
+  {sb:1000, bb:2000, min:12},
+  {sb:1500, bb:3000, min:10},
+  {sb:2500, bb:5000, min:8},
+  {sb:4000, bb:8000, min:6},
+];
+
+let currentLevel = 1;
+let remaining = parseInt(document.getElementById('levelDuration').value) * 60;
+let timer = null;
+let warningPlayed = false;
+
+/* =========================
+   Audio (WebAudio tones)
+   ========================= */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, length=0.18, type='sine', gain=0.12){
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = gain;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  setTimeout(()=>{ o.stop(); }, length*1000);
+}
+
+function playChime(){ // pleasant arpeggio
+  playTone(880,0.18,'sine',0.12);
+  setTimeout(()=>playTone(660,0.18,'sine',0.10),120);
+  setTimeout(()=>playTone(1040,0.22,'sine',0.09),260);
+}
+
+function playWarning(){ // short beep
+  playTone(440,0.12,'square',0.16);
+}
+
+/* =========================
+   Render functions
+   ========================= */
+
+function updateDisplay(){
+  const mm = Math.floor(remaining/60).toString().padStart(2,'0');
+  const ss = (remaining%60).toString().padStart(2,'0');
+  clockEl.textContent = `${mm}:${ss}`;
+  tvClockEl.textContent = `${mm}:${ss}`;
+  levelNumEl.textContent = currentLevel;
+  const lvl = levels[currentLevel-1] || levels[levels.length-1];
+  blindsTextEl.textContent = `${lvl.sb} / ${lvl.bb}`;
+  anteTextEl.textContent = document.getElementById('defaultAnte').value || 0;
+  tvMetaEl.textContent = `Nivel ${currentLevel} — ${lvl.sb} / ${lvl.bb} — Ante ${document.getElementById('defaultAnte').value || 0}`;
+
+  // update pills (show next 6)
+  blindPillsEl.innerHTML = '';
+  for(let i=currentLevel-1;i<Math.min(levels.length,currentLevel-1+6);i++){
+    const p = document.createElement('div'); p.className='pill'; p.textContent = `${levels[i].sb}/${levels[i].bb} · ${levels[i].min}m`;
+    if(i===currentLevel-1){ p.style.border = '2px solid rgba(212,175,55,0.9)'; p.style.background = 'linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06))';}
+    blindPillsEl.appendChild(p);
+  }
+}
+
+/* Levels list UI */
+function renderLevelsList(){
+  levelsListEl.innerHTML = '';
+  levels.forEach((l, idx) => {
+    const item = document.createElement('div'); item.className='level-item';
+    item.innerHTML = `
+      <div class="pos">${idx+1}</div>
+      <input data-idx="${idx}" class="sbIn" value="${l.sb}" />
+      <input data-idx="${idx}" class="bbIn" value="${l.bb}" />
+      <input data-idx="${idx}" class="minIn" value="${l.min}" />
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn small" data-del="${idx}">Eliminar</button>
+      </div>
+    `;
+    levelsListEl.appendChild(item);
+  });
+
+  // bind inputs
+  levelsListEl.querySelectorAll('.sbIn').forEach(n=>{
+    n.addEventListener('change', e=>{
+      const i = parseInt(e.target.dataset.idx); levels[i].sb = parseInt(e.target.value) || 0;
+      updateDisplay();
+    });
+  });
+  levelsListEl.querySelectorAll('.bbIn').forEach(n=>{
+    n.addEventListener('change', e=>{
+      const i = parseInt(e.target.dataset.idx); levels[i].bb = parseInt(e.target.value) || 0;
+      updateDisplay();
+    });
+  });
+  levelsListEl.querySelectorAll('.minIn').forEach(n=>{
+    n.addEventListener('change', e=>{
+      const i = parseInt(e.target.dataset.idx); levels[i].min = parseInt(e.target.value) || 1;
+      updateDisplay();
+    });
+  });
+  // delete
+  levelsListEl.querySelectorAll('button[data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const i = parseInt(e.target.dataset.del);
+      if(confirm('Eliminar nivel '+(i+1)+'?')){ levels.splice(i,1); if(currentLevel>levels.length) currentLevel=levels.length; renderLevelsList(); updateDisplay();}
+    });
+  });
+}
+
+/* =========================
+   Timer controls
+   ========================= */
+
+function startTimer(){
+  if(timer) return;
+  // resume audio context if needed
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  timer = setInterval(()=>{
+    remaining--;
+    // 10-second warning
+    if(remaining===10 && !warningPlayed){
+      playWarning();
+      warningPlayed = true;
+    }
+    if(remaining<=0){
+      clearInterval(timer); timer=null; levelUp();
+    }
+    updateDisplay();
+  },1000);
+}
+
+function pauseTimer(){
+  if(timer){ clearInterval(timer); timer=null; }
+}
+
+function resetTimerForLevel(){
+  const ld = levels[currentLevel-1] ? levels[currentLevel-1].min : parseInt(document.getElementById('levelDuration').value);
+  remaining = ld * 60;
+  warningPlayed = false;
+  updateDisplay();
+}
+
+/* Level up */
+function levelUp(){
+  playChime();
+  // visual flash
+  flashEl.className = 'flash';
+  setTimeout(()=>{ flashEl.className = ''; }, 900);
+
+  if(currentLevel < levels.length){
+    currentLevel++;
+    resetTimerForLevel();
+    startTimer();
+  } else {
+    // last level reached, stop
+    remaining = 0;
+    updateDisplay();
+  }
+  renderLevelsList(); // refresh UI (pills etc)
+}
+
+/* Buttons */
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  // if starting first time, set remaining according to current level
+  if(!remaining || remaining<=0) resetTimerForLevel();
+  startTimer();
+});
+
+document.getElementById('pauseBtn').addEventListener('click', ()=>{ pauseTimer(); });
+document.getElementById('nextBtn').addEventListener('click', ()=>{ pauseTimer(); levelUp(); });
+document.getElementById("resetLevelBtn").addEventListener("click", () => {
+    restartLevel();
+});
+
+function restartLevel() {
+    pauseTimer();  // Detiene el contador si está corriendo
+
+    const lvl = levels[currentLevel - 1];
+    remaining = lvl.min * 60; // Reinicia el tiempo del nivel actual
+    warningPlayed = false;
+
+    updateDisplay(); // Actualiza visualmente el reloj
+
+    // Opcional: sonido de reinicio
+    playTone(600, 0.12, "square", 0.18);
+}
+
+
+/* Add new level */
+document.getElementById('addLevelBtn').addEventListener('click', ()=>{
+  const sb = parseInt(document.getElementById('newSB').value) || 0;
+  const bb = parseInt(document.getElementById('newBB').value) || 0;
+  const min = parseInt(document.getElementById('newDur').value) || 10;
+  levels.push({sb,bb,min});
+  document.getElementById('newSB').value=''; document.getElementById('newBB').value=''; document.getElementById('newDur').value='';
+  renderLevelsList(); updateDisplay();
+});
+
+/* Export / Import */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const payload = {tourney: document.getElementById('tourneyName').value, levels, ante: document.getElementById('defaultAnte').value};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = (payload.tourney || 'estructura') + '.json'; a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  // example simple import (resets to initial demo)
+  if(!confirm('Importar estructura demo? Reemplazará la actual.')) return;
+  levels = [
+    {sb:100, bb:200, min:20},{sb:200, bb:400, min:20},{sb:400, bb:800, min:15},{sb:800, bb:1600, min:12}
+  ];
+  currentLevel = 1;
+  renderLevelsList();
+  resetTimerForLevel();
+});
+
+/* Default ante change updates display */
+document.getElementById('defaultAnte').addEventListener('change', ()=>updateDisplay());
+document.getElementById('levelDuration').addEventListener('change', ()=>{
+  // update current remaining if necessary
+  if(!timer) resetTimerForLevel();
+});
+
+/* =========================
+   TV Mode (Fullscreen & optimized layout)
+   ========================= */
+const tvBtn = document.getElementById('tvBtn');
+const tvOverlay = document.getElementById('tvOverlay');
+const exitTvBtn = document.getElementById('exitTvBtn');
+
+tvBtn.addEventListener('click', async ()=>{
+  // request browser fullscreen on body
+  try{
+    if(document.body.requestFullscreen) await document.body.requestFullscreen();
+    else if(document.documentElement.webkitRequestFullscreen) await document.documentElement.webkitRequestFullscreen();
+  }catch(e){ /* ignore */ }
+
+  tvOverlay.style.display = 'flex';
+  tvOverlay.setAttribute('aria-hidden','false');
+  // hide pointer after 3s
+  document.body.style.cursor='none';
+  setTimeout(()=>{ document.body.style.cursor='default'; }, 2600);
+});
+
+exitTvBtn.addEventListener('click', async ()=>{
+  tvOverlay.style.display = 'none';
+  tvOverlay.setAttribute('aria-hidden','true');
+  try{ if(document.exitFullscreen) await document.exitFullscreen(); }catch(e){}
+});
+
+/* When in TV overlay, keep sync */
+setInterval(()=>{ // lightweight poll for display sync
+  tvClockEl.textContent = clockEl.textContent;
+  tvMetaEl.textContent = `Nivel ${currentLevel} — ${ (levels[currentLevel-1]||levels[levels.length-1]).sb } / ${ (levels[currentLevel-1]||levels[levels.length-1]).bb } — Ante ${document.getElementById('defaultAnte').value || 0 }`;
+}, 300);
+
+/* Keyboard shortcuts for TV & control (useful en sala) */
+document.addEventListener('keydown', (e)=>{
+  if(e.key===' '){ e.preventDefault(); if(timer) pauseTimer(); else startTimer(); }
+  if(e.key==='ArrowRight'){ pauseTimer(); levelUp(); }
+  if(e.key==='t'){ tvBtn.click(); }
+});
+
+/* Initialize UI */
+renderLevelsList();
+resetTimerForLevel();
+updateDisplay();
+
+/* Ensure audio context start on first user gesture for autoplay policies */
+window.addEventListener('click', ()=>{ if(audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
+</script>
+</body>
+</html>
