@@ -209,6 +209,50 @@
         <button class="btn ghost" id="importBtn">Importar ejemplo</button>
       </div>
 
+     <hr style="border-color:rgba(212,175,55,0.1)">
+
+<h3>Gestión avanzada</h3>
+
+<div class="field">
+  <label>Break (min)</label>
+  <input id="breakDuration" type="number" value="10">
+  <button class="btn small" id="startBreakBtn">Iniciar Break</button>
+</div>
+
+<div class="field">
+  <label>Registro tardío cierra en nivel</label>
+  <input id="lateRegLevel" type="number" value="6">
+  <div id="lateRegStatus" style="margin-top:6px;color:var(--ivory)">
+    Registro: ABIERTO
+  </div>
+</div>
+
+<div class="row">
+  <div class="field" style="flex:1">
+    <label>Stack inicial</label>
+    <input id="startingStack" type="number" value="30000">
+  </div>
+  <div class="field" style="flex:1">
+    <label>Jugadores activos</label>
+    <input id="activePlayers" type="number" value="40">
+  </div>
+</div>
+
+<div class="field">
+  <label>Stack promedio</label>
+  <div id="avgStack" style="font-weight:bold;color:var(--gold)">—</div>
+</div>
+
+<div class="row">
+  <button class="btn small" id="reentryBtn">+ Re-entry</button>
+  <button class="btn small ghost" id="addonBtn">+ Add-on</button>
+</div>
+
+<div style="margin-top:6px;color:var(--ivory)">
+  Re-entries: <b id="reentryCount">0</b> · Add-ons: <b id="addonCount">0</b>
+</div>
+ 
+      
     </aside>
   </div>
 
@@ -242,15 +286,26 @@ const levelsListEl = document.getElementById('levelsList');
 const flashEl = document.getElementById('flash');
 
 let levels = [
+  {sb:50, bb:100, min:20},
+  {sb:75, bb:150, min:20},
   {sb:100, bb:200, min:20},
-  {sb:150, bb:300, min:20},
-  {sb:250, bb:500, min:20},
-  {sb:400, bb:800, min:15},
-  {sb:600, bb:1200, min:15},
-  {sb:1000, bb:2000, min:12},
-  {sb:1500, bb:3000, min:10},
-  {sb:2500, bb:5000, min:8},
-  {sb:4000, bb:8000, min:6},
+  {sb:150, bb:300, min:15},
+  {sb:200, bb:400, min:15},
+  {sb:300, bb:600, min:12},
+  {sb:400, bb:800, min:10},
+  {sb:500, bb:1000, min:10},
+  {sb:600, bb:1200, min:10},
+  {sb:700, bb:1400, min:10},
+  {sb:800, bb:1600, min:10},
+  {sb:900, bb:1800, min:10},
+  {sb:1000, bb:2000, min:10},
+  {sb:2000, bb:4000, min:8},
+  {sb:3000, bb:6000, min:8},
+  {sb:4000, bb:8000, min:8},
+  {sb:5000, bb:10000, min:6},
+  {sb:6000, bb:12000, min:6},
+  {sb:7000, bb:14000, min:6},
+  {sb:8000, bb:16000, min:6},
 ];
 
 let currentLevel = 1;
@@ -514,6 +569,81 @@ updateDisplay();
 
 /* Ensure audio context start on first user gesture for autoplay policies */
 window.addEventListener('click', ()=>{ if(audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
+  
+  /* =========================
+   ADVANCED TOURNAMENT MODULES
+   ========================= */
+
+let isBreak = false;
+let breakRemaining = 0;
+let reentries = 0;
+let addons = 0;
+
+/* Break system */
+document.getElementById('startBreakBtn').addEventListener('click', ()=>{
+  pauseTimer();
+  isBreak = true;
+  breakRemaining = parseInt(document.getElementById('breakDuration').value) * 60;
+  runBreak();
+});
+
+function runBreak(){
+  if(!isBreak) return;
+  const interval = setInterval(()=>{
+    breakRemaining--;
+    const mm = Math.floor(breakRemaining/60).toString().padStart(2,'0');
+    const ss = (breakRemaining%60).toString().padStart(2,'0');
+    clockEl.textContent = `${mm}:${ss}`;
+    tvClockEl.textContent = `${mm}:${ss}`;
+    tvMetaEl.textContent = `BREAK`;
+    if(breakRemaining<=0){
+      clearInterval(interval);
+      isBreak = false;
+      resetTimerForLevel();
+      startTimer();
+    }
+  },1000);
+}
+
+/* Late Registration */
+function updateLateReg(){
+  const closeLvl = parseInt(document.getElementById('lateRegLevel').value);
+  const status = document.getElementById('lateRegStatus');
+  if(currentLevel > closeLvl){
+    status.textContent = 'Registro: CERRADO';
+    status.style.color = '#ff6666';
+  } else {
+    status.textContent = 'Registro: ABIERTO';
+    status.style.color = '#6aff9d';
+  }
+}
+setInterval(updateLateReg, 1000);
+
+/* Stack promedio */
+function updateAvgStack(){
+  const stack = parseInt(document.getElementById('startingStack').value);
+  const players = parseInt(document.getElementById('activePlayers').value);
+  const totalChips = (players * stack) + (reentries * stack) + (addons * stack);
+  const avg = players > 0 ? Math.floor(totalChips / players) : 0;
+  document.getElementById('avgStack').textContent = avg.toLocaleString();
+}
+setInterval(updateAvgStack, 1000);
+
+/* Re-entries & Add-ons */
+document.getElementById('reentryBtn').addEventListener('click', ()=>{
+  reentries++;
+  document.getElementById('reentryCount').textContent = reentries;
+});
+document.getElementById('addonBtn').addEventListener('click', ()=>{
+  addons++;
+  document.getElementById('addonCount').textContent = addons;
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+  
+  
 </script>
 </body>
 </html>
