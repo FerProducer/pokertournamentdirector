@@ -9,12 +9,12 @@
   "orientation": "landscape",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://raw.githubusercontent.com/FerProducer/POKER-CODERE/refs/heads/main/4.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "https://raw.githubusercontent.com/FerProducer/POKER-CODERE/refs/heads/main/4.png",
       "sizes": "512x512",
       "type": "image/png"
     }
