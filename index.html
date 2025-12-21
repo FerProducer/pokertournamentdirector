@@ -122,6 +122,34 @@
     transform: scale(1.05);
 }
 
+  /* =========================
+   TV TOP 5 ANIMATION
+   ========================= */
+.tv-top5 {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.tv-top5-item {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: top5Fade 0.6s ease forwards;
+  font-size: 16px;
+  color: var(--ivory);
+}
+
+.tv-top5-item b {
+  color: var(--gold);
+}
+
+@keyframes top5Fade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+  
 </style>
 </head>
 <body>
@@ -252,6 +280,37 @@
   Re-entries: <b id="reentryCount">0</b> · Add-ons: <b id="addonCount">0</b>
 </div>
  
+      <hr style="border-color:rgba(212,175,55,0.1)">
+
+<h3>Prize Pool</h3>
+
+<div class="row">
+  <div class="field" style="flex:1">
+    <label>Fee / Rake (%)</label>
+    <input id="rakePercent" type="number" value="10">
+  </div>
+  <div class="field" style="flex:1">
+    <label>Entradas pagadas</label>
+    <input id="paidEntries" type="number" value="40">
+  </div>
+</div>
+
+<div class="field">
+  <label>Prize Pool total</label>
+  <div id="prizePool" style="font-size:18px;font-weight:800;color:var(--gold)">—</div>
+</div>
+
+<div class="field">
+  <label>Distribución (%)</label>
+  <textarea id="payouts" rows="3">50,30,20</textarea>
+  <small style="opacity:.7">Ej: 50,30,20 = 1º, 2º, 3º</small>
+</div>
+
+<div class="field">
+  <label>Premios calculados</label>
+  <div id="payoutResult" style="font-size:14px;color:var(--ivory)"></div>
+</div>
+
       
     </aside>
   </div>
@@ -266,6 +325,22 @@
   <img class="tv-watermark" src="/mnt/data/WhatsApp Image 2025-11-23 at 6.10.12 PM.jpeg" alt="watermark">
   <div class="tv-clock" id="tvClock">00:00</div>
   <div class="tv-meta" id="tvMeta">Nivel 1 — 100 / 200 — Ante 0</div>
+  <div id="tvPrize"
+     style="margin-top:10px;
+            font-size:22px;
+            font-weight:800;
+            color:var(--gold);
+            text-align:center">
+</div>
+
+<div id="tvPayouts"
+     style="margin-top:8px;
+            font-size:16px;
+            color:var(--ivory);
+            text-align:center">
+</div>
+<div id="tvTop5" class="tv-top5"></div>
+
   <div style="margin-top:20px">
     <button class="btn" id="exitTvBtn">Salir TV</button>
   </div>
@@ -626,6 +701,8 @@ function updateAvgStack(){
   const totalChips = (players * stack) + (reentries * stack) + (addons * stack);
   const avg = players > 0 ? Math.floor(totalChips / players) : 0;
   document.getElementById('avgStack').textContent = avg.toLocaleString();
+  document.getElementById('paidEntries').value =
+  parseInt(document.getElementById('activePlayers').value || 0) + reentries + addons;
 }
 setInterval(updateAvgStack, 1000);
 
@@ -643,6 +720,86 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js');
 }
   
+  /* =========================
+   PRIZE POOL MODULE
+   ========================= */
+
+function updatePrizePool() {
+  const buyin = parseFloat(document.getElementById('buyin').value) || 0;
+  const rake = parseFloat(document.getElementById('rakePercent').value) || 0;
+  const entries = parseInt(document.getElementById('paidEntries').value) || 0;
+
+  const gross = buyin * entries;
+  const fee = gross * (rake / 100);
+  const netPrize = Math.floor(gross - fee);
+
+  document.getElementById('prizePool').textContent =
+    netPrize.toLocaleString() + ' MXN';
+
+  calculatePayouts(netPrize);
+}
+
+/* Distribution */
+function calculatePayouts(pool) {
+  const raw = document.getElementById('payouts').value;
+  const result = document.getElementById('payoutResult');
+  result.innerHTML = '';
+
+  const percents = raw.split(',').map(p => parseFloat(p.trim()));
+  if (!percents.length || percents.reduce((a,b)=>a+b,0) <= 0) return;
+
+  percents.forEach((p, i) => {
+    const prize = Math.floor(pool * (p / 100));
+    const line = document.createElement('div');
+    line.innerHTML = `<b>${i+1}º</b> — ${prize.toLocaleString()} MXN`;
+    result.appendChild(line);
+  });
+}
+
+/* Auto sync */
+setInterval(updatePrizePool, 1000);
+
+
+
+  /* =========================
+   TV TOP 5 PAYOUTS (ANIMATED)
+   ========================= */
+
+let lastTop5HTML = '';
+
+function updateTVTop5() {
+  if (tvOverlay.style.display !== 'flex') return;
+
+  const poolText = document.getElementById('prizePool').textContent;
+  const raw = document.getElementById('payouts').value;
+
+  const poolValue = parseInt(poolText.replace(/[^\d]/g, '')) || 0;
+  const percents = raw.split(',').map(p => parseFloat(p.trim())).slice(0,5);
+
+  if (!percents.length || poolValue <= 0) return;
+
+  const container = document.getElementById('tvTop5');
+  let html = '';
+
+  percents.forEach((p, i) => {
+    const prize = Math.floor(poolValue * (p / 100));
+    html += `
+      <div class="tv-top5-item" style="animation-delay:${i * 0.15}s">
+        <b>${i + 1}º</b> — ${prize.toLocaleString()} MXN
+      </div>
+    `;
+  });
+
+  /* Prevent re-animating if no change */
+  if (html !== lastTop5HTML) {
+    container.innerHTML = html;
+    lastTop5HTML = html;
+  }
+}
+
+/* Sync with TV refresh */
+setInterval(updateTVTop5, 600);
+
   
 </script>
 </body>
