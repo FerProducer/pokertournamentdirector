@@ -1,13 +1,13 @@
+const CACHE_NAME = "luigis-poker-director-v1";
+const FILES = [
+  "./",
+  "./index.html",
+  "./manifest.json"
+];
+
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("poker-td").then(cache => {
-      return cache.addAll([
-        "./",
-        "./index.html",
-        "./style.css",
-        "./app.js"
-      ]);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
   );
 });
 
@@ -16,4 +16,3 @@ self.addEventListener("fetch", e => {
     caches.match(e.request).then(res => res || fetch(e.request))
   );
 });
-
